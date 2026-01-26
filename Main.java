@@ -2,6 +2,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 import javax.swing.*;
 
@@ -12,19 +14,24 @@ public class Main {
     private static JLabel titleLabel;
     private static JButton randomSeatButton;
 
-    private static List<String> seatPool = new ArrayList<>();
+    private static final List<String> seatPool = new ArrayList<>();
+    private static final Set<String> disabledSeats = new HashSet<>();
     private static int seatIndex = 0;
+
+    private static final String[] leftRows  = {"A","B","C","D"};
+    private static final String[] rightRows = {"E","F","G","H"};
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(Main::createAndShowUi);
     }
+
+    /* ================= MAIN WINDOW ================= */
 
     private static void createAndShowUi() {
         JFrame frame = new JFrame("Random Seat Picker");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.getContentPane().setBackground(new Color(30, 30, 40));
 
-        // Create UI components first
         titleLabel = new JLabel("Random Seat Picker", JLabel.CENTER);
         titleLabel.setForeground(Color.WHITE);
 
@@ -34,8 +41,8 @@ public class Main {
         counterLabel = new JLabel("", JLabel.CENTER);
         counterLabel.setForeground(new Color(180, 180, 180));
 
-        // Create the button using the restored makeTxtButton
         randomSeatButton = makeTxtButton("Pick Seat", new Color(72, 99, 255));
+        JButton settingsButton = makeTxtButton("Seat Settings", new Color(120, 120, 120));
 
         initSeats();
 
@@ -48,6 +55,7 @@ public class Main {
         resultLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         counterLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         randomSeatButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        settingsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         card.add(titleLabel);
         card.add(Box.createVerticalStrut(20));
@@ -56,11 +64,11 @@ public class Main {
         card.add(counterLabel);
         card.add(Box.createVerticalStrut(25));
         card.add(randomSeatButton);
+        card.add(Box.createVerticalStrut(10));
+        card.add(settingsButton);
 
-        frame.setLayout(new BorderLayout());
-        frame.add(card, BorderLayout.CENTER);
-
-        frame.setSize(420, 320);
+        frame.add(card);
+        frame.setSize(420, 360);
         frame.setLocationRelativeTo(null);
 
         updateFonts(frame.getWidth());
@@ -74,17 +82,93 @@ public class Main {
         frame.setVisible(true);
     }
 
-    /* ---------------- Seat Logic ---------------- */
+    /* ================= SEAT SETTINGS WINDOW ================= */
+
+    private static void openSeatSettings() {
+        JFrame settingsFrame = new JFrame("Seat Settings");
+        settingsFrame.setSize(600, 420);
+        settingsFrame.setLocationRelativeTo(null);
+        settingsFrame.getContentPane().setBackground(new Color(30, 30, 40));
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(45, 45, 60));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel title = new JLabel("Toggle Active Seats", JLabel.CENTER);
+        title.setForeground(Color.WHITE);
+        title.setFont(new Font("SansSerif", Font.BOLD, 20));
+
+        panel.add(title, BorderLayout.NORTH);
+        panel.add(createSeatGrid(), BorderLayout.CENTER);
+
+        settingsFrame.add(panel);
+        settingsFrame.setVisible(true);
+    }
+
+    /* ================= SEAT GRID ================= */
+
+    private static JPanel createSeatGrid() {
+        JPanel grid = new JPanel(new GridLayout(0, 9, 10, 10));
+        grid.setBackground(new Color(45, 45, 60));
+
+        for (int i = 0; i < leftRows.length; i++) {
+
+            for (int n = 4; n >= 1; n--) {
+                grid.add(createSeatToggle(leftRows[i] + n));
+            }
+
+            grid.add(new JLabel());
+
+            for (int n = 1; n <= 4; n++) {
+                grid.add(createSeatToggle(rightRows[i] + n));
+            }
+        }
+
+        return grid;
+    }
+
+    private static JToggleButton createSeatToggle(String seat) {
+        JToggleButton btn = new JToggleButton(seat);
+
+        btn.setFocusPainted(false);
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(new Color(90, 90, 110));
+        btn.setSelected(disabledSeats.contains(seat));
+
+        if (btn.isSelected()) {
+            btn.setBackground(new Color(120, 60, 60));
+        }
+
+        btn.addItemListener(e -> {
+            if (btn.isSelected()) {
+                disabledSeats.add(seat);
+                btn.setBackground(new Color(120, 60, 60));
+            } else {
+                disabledSeats.remove(seat);
+                btn.setBackground(new Color(90, 90, 110));
+            }
+            initSeats();
+        });
+
+        return btn;
+    }
+
+    /* ================= SEAT LOGIC ================= */
 
     private static void initSeats() {
         seatPool.clear();
 
-        String[] rows = {"A", "B", "C", "D", "E", "F", "G", "H", "I"};
-        String[] numbers = {"1", "2", "3", "4"};
+        for (int i = 0; i < leftRows.length; i++) {
+            for (int n = 1; n <= 4; n++) {
+                String leftSeat = leftRows[i] + n;
+                if (!disabledSeats.contains(leftSeat)) {
+                    seatPool.add(leftSeat);
+                }
 
-        for (String row : rows) {
-            for (String num : numbers) {
-                seatPool.add(row + num);
+                String rightSeat = rightRows[i] + n;
+                if (!disabledSeats.contains(rightSeat)) {
+                    seatPool.add(rightSeat);
+                }
             }
         }
 
@@ -94,6 +178,9 @@ public class Main {
     }
 
     private static String getNextSeat() {
+        if (seatPool.isEmpty()) {
+            return "No seats";
+        }
         if (seatIndex >= seatPool.size()) {
             initSeats();
         }
@@ -102,31 +189,22 @@ public class Main {
     }
 
     private static void updateCounter() {
-        if (counterLabel != null) {
-            counterLabel.setText("Remaining seats: " + (seatPool.size() - seatIndex));
-        }
+        counterLabel.setText("Remaining seats: " + Math.max(0, seatPool.size() - seatIndex));
     }
 
-    /* ---------------- Button Handler ---------------- */
+    /* ================= BUTTON HANDLER ================= */
 
     private static void handler(String name) {
         if (name.equals("Pick Seat")) {
-            String seat = getNextSeat();
-            resultLabel.setText(seat);
+            resultLabel.setText(getNextSeat());
+        }
+        if (name.equals("Seat Settings")) {
+            openSeatSettings();
         }
     }
 
-    /* ---------------- Styled Button with Dark Outline ---------------- */
+    /* ================= STYLED BUTTON ================= */
 
-    /**
-     * Creates a JButton with text and mouse hover/press effects.
-     * To make it call a certain function, alter the handler method.
-     * By default, it will output "name" not found.
-     *
-     * @param txt The text to display on the button
-     * @param clr The color background on the button
-     * @return The customized JButton
-     */
     public static JButton makeTxtButton(String txt, Color clr) {
         JButton btn = new JButton(txt);
         btn.setName(txt);
@@ -134,75 +212,20 @@ public class Main {
         btn.setBackground(clr);
         btn.setForeground(Color.WHITE);
         btn.setFocusPainted(false);
-        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Make button larger so text fits
-        Dimension size = new Dimension(160, 50); // wider and taller
+        Dimension size = new Dimension(160, 50);
         btn.setPreferredSize(size);
-        btn.setMinimumSize(size);
-        btn.setMaximumSize(size);
-
-        btn.setContentAreaFilled(false);
-        btn.setOpaque(true);
-
-        // Darker outline
-        Color outline = clr.darker();
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(outline, 3), // darker outline
-                BorderFactory.createEmptyBorder(10, 20, 10, 20)
-        ));
 
         btn.addActionListener(e -> handler(txt));
-
-        btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                btn.setBackground(lighten(clr, 0.2));
-            }
-
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                btn.setBackground(clr);
-            }
-
-            public void mousePressed(java.awt.event.MouseEvent evt) {
-                btn.setBackground(darken(clr, 0.2));
-            }
-
-            public void mouseReleased(java.awt.event.MouseEvent evt) {
-                btn.setBackground(clr);
-            }
-        });
         return btn;
     }
 
-    /* ---------------- Dynamic Font Scaling ---------------- */
+    /* ================= FONT SCALING ================= */
 
     private static void updateFonts(int width) {
-        int titleSize = Math.max(20, width / 14);
-        int resultSize = Math.max(18, width / 18);
-        int counterSize = Math.max(14, width / 26);
-        int buttonSize = Math.max(14, width / 22);
-
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, titleSize));
-        resultLabel.setFont(new Font("SansSerif", Font.BOLD, resultSize));
-        counterLabel.setFont(new Font("SansSerif", Font.PLAIN, counterSize));
-        randomSeatButton.setFont(new Font("SansSerif", Font.BOLD, buttonSize));
-    }
-
-    /* ---------------- Color Helpers ---------------- */
-
-    private static Color lighten(Color c, double amount) {
-        return new Color(
-                Math.min(255, (int) (c.getRed() + 255 * amount)),
-                Math.min(255, (int) (c.getGreen() + 255 * amount)),
-                Math.min(255, (int) (c.getBlue() + 255 * amount))
-        );
-    }
-
-    private static Color darken(Color c, double amount) {
-        return new Color(
-                Math.max(0, (int) (c.getRed() - 255 * amount)),
-                Math.max(0, (int) (c.getGreen() - 255 * amount)),
-                Math.max(0, (int) (c.getBlue() - 255 * amount))
-        );
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, Math.max(20, width / 14)));
+        resultLabel.setFont(new Font("SansSerif", Font.BOLD, Math.max(18, width / 18)));
+        counterLabel.setFont(new Font("SansSerif", Font.PLAIN, Math.max(14, width / 26)));
+        randomSeatButton.setFont(new Font("SansSerif", Font.BOLD, Math.max(14, width / 22)));
     }
 }
