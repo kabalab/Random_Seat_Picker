@@ -201,6 +201,15 @@ public class Main {
         }
     }
 
+    private static File getPreferredDocumentsDir() {
+        File oneDriveDocuments = new File(System.getProperty("user.home"),
+                "OneDrive - San Diego Unified School District\\Documents");
+        if (oneDriveDocuments.exists() && oneDriveDocuments.isDirectory()) {
+            return oneDriveDocuments;
+        }
+        return new File(System.getProperty("user.home"), "Documents");
+    }
+
     private static boolean autoLoadSeatingChart() {
         String periodSuffix = getAttendancePeriodSuffix();
         if (periodSuffix.isEmpty()) {
@@ -208,7 +217,7 @@ public class Main {
         }
 
         String periodTag = "P" + periodSuffix;
-        File documentsDir = new File(System.getProperty("user.home"), "Documents");
+        File documentsDir = getPreferredDocumentsDir();
         File chartFile = new File(documentsDir, periodTag + "_seats.csv");
 
         if (!chartFile.exists()) {
